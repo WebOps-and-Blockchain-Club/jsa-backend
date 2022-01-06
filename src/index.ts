@@ -2,8 +2,8 @@ import express from "express";
 import * as dotenv from "dotenv";
 dotenv.config();
 import client from "./db/postgres";
-import cors from "cors"
-
+import cors from "cors";
+const axios = require("axios")
 const app = express();
 
 // middleware
@@ -20,6 +20,21 @@ app.get("/jobs",async (req,res)=>{
       res.json(jobs.rows);
     }else{
       // fetch the data from flask api
+      var config = {
+        method: 'get',
+        url: `{{url}}/job-search?job_title=${title}&job_location=${location}`,
+        headers: { }
+      };
+      
+      await axios(config)
+      .then(async(response : any) =>{
+        res.json(response.data)
+        //Add the data to db
+        await client.query("",[location,title])
+      })
+      .catch(function (error : any) {
+        console.log(error);
+      });
      
     }
    
