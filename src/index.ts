@@ -2,8 +2,58 @@ import express from "express";
 import * as dotenv from "dotenv";
 dotenv.config();
 import client from "./db/postgres";
-
+const axios = require("axios")
 const app = express();
+
+// middleware
+
+app.use(express.json());
+
+// To get all jobs
+// /jobs?location=&title=
+app.get("/jobs",async (req,res)=>{
+  try {
+    const {location , title} = req.query;
+    const jobs = await client.query("SELECT * FROM jobsearch WHERE ",[location,title]);
+    if(jobs.rows.length !== 0){
+      res.json(jobs.rows);
+    }else{
+      // fetch the data from flask api
+      var config = {
+        method: 'get',
+        url: `{{url}}/job-search?job_title=${title}&job_location=${location}`,
+        headers: { }
+      };
+      
+      await axios(config)
+      .then(async(response : any) =>{
+        res.json(response.data)
+        //Add the data to db
+        await client.query("",[location,title])
+      })
+      .catch(function (error : any) {
+        console.log(error);
+      });
+     
+    }
+   
+  } catch (error) {
+    console.log(error.message)
+    res.end()
+  }
+})
+
+// To get a job
+app.get("/job/:id",async (req,res)=>{
+  try {
+    const {id} = req.params;
+    const job = await client.query("",[id])
+    res.json(job.rows[0]);
+  } catch (error) {
+    console.log(error.message)
+  }
+})
+
 
 client.connect().then(() => {
   console.log("Connected to database");
