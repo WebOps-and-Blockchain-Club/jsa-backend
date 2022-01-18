@@ -1,32 +1,29 @@
 import { Client } from "pg";
 
-const client = new Client();
+const client = new Client({
+  user: process.env.PGUSER,
+  host: process.env.PGHOST,
+  database: process.env.PGDATABASE,
+  password: process.env.PASSWORD,
+  port: Number(String(process.env.PGPORT)),
+});
 
-client.query('SELECT NOW() as now', (err, res) => {
+client.query('CREATE TABLE IF NOT EXISTS job_details( job_id VARCHAR(50) NOT NULL UNIQUE, job_title VARCHAR(100) NOT NULL, job_desk VARCHAR(50) NOT NULL, job_employer VARCHAR(100) NOT NULL, job_salary VARCHAR(100) NOT NULL, job_link VARCHAR NOT NULL, job_description VARCHAR NOT NULL, job_description_html VARCHAR NOT NULL, PRIMARY KEY (job_id));', (err) => {
     if (err) {
       console.log(err.stack)
-    } else {
-      console.log(res.rows[0])
     }
   })
 
-client.query('CREATE TABLE IF NOT EXISTS jobsearch( id BIGSERIAL NOT NULL PRIMARY KEY, title VARCHAR(100), location VARCHAR(100));', (err) => {
+client.query('CREATE TABLE IF NOT EXISTS jobinputs( input_uid UUID NOT NULL PRIMARY KEY, job_title VARCHAR(50) NOT NULL, job_location VARCHAR(50) NOT NULL);', (err) => {
     if (err) {
       console.log(err.stack)
-    } else {
-      console.log('Jobsearch Table created successfully')
-      // console.log(res)
-    }
-  })
-
-client.query('CREATE TABLE IF NOT EXISTS jobs(id VARCHAR ,title VARCHAR(100),description VARCHAR,description_html VARCHAR, desk VARCHAR(20), employer VARCHAR,link VARCHAR,salary VARCHAR,jobsearch_id BIGINT REFERENCES jobsearch(id));', (err) => {
-    if (err) {
-      console.log(err.stack)
-    } else {
-      console.log('Jobs Table created successfully')
-      // console.log(res)
     }
   })
   
-
+client.query('CREATE TABLE IF NOT EXISTS input_details( input_id UUID REFERENCES jobinputs(input_uid) ON DELETE CASCADE ON UPDATE CASCADE, details_id VARCHAR(50) REFERENCES job_details(job_id) ON DELETE CASCADE ON UPDATE CASCADE);', (err) => {
+    if (err) {
+      console.log(err.stack)
+    }
+  })
+  
 export default client;
