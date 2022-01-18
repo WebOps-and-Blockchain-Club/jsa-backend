@@ -53,18 +53,23 @@ app.get("/jobs",async (req,res)=>{
 
         if(jobinputs.rows.length==0){
           await client.query("INSERT INTO jobinputs(input_uid , job_title, job_location) VALUES($1, $2 , $3)",[ uuidv4() ,title , location]);
-          jobinputs = await client.query("SELECT input_uid FROM jobinputs WHERE job_title=$1 AND job_location=$2",[title,location]);
+          if(title && location){
+            jobinputs = await client.query("SELECT input_uid FROM jobinputs WHERE job_title=$1 AND job_location=$2",[title,location]);
+          }
+          else if(title && location== undefined){
+            jobinputs = await client.query("SELECT input_uid FROM jobinputs WHERE job_title=$1",[title]);
+          }
+          else{
+            jobinputs = await client.query("SELECT input_uid FROM jobinputs WHERE job_location=$1",[location]);
+          }
         }
 
         const data = response.data;
         data.map(async(job : any) => {
-
-          //Add the jobs details data to job_details table 
-          // if( await client.query("select exists(select 1 from job_details where id=$1)",[job.id])){
-          //   console.log("hello")
-          // }
-
-          await client.query("INSERT INTO job_details(job_id, job_title , job_description ,job_description_html , job_desk , job_employer , job_link , job_salary) VALUES($1, $2 , $3, $4 , $5, $6, $7, $8 )",[job.id , job.title , job.description , job.description_html , job.desk , job.employer , job.link , job.salary] );
+          jobs = await client.query("SELECT * FROM job_details WHERE job_id=$1",[job.id])
+          if(jobs.rows.length==0){
+            await client.query("INSERT INTO job_details(job_id, job_title , job_description ,job_description_html , job_desk , job_employer , job_link , job_salary) VALUES($1, $2 , $3, $4 , $5, $6, $7, $8 )",[job.id , job.title , job.description , job.description_html , job.desk , job.employer , job.link , job.salary] );
+          }
 
           //Add the data to input_details (relation) table
           await client.query("INSERT INTO input_details(input_id, details_id) VALUES($1, $2)",[jobinputs.rows[0].input_uid , job.id]);

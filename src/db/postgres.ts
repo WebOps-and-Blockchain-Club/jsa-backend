@@ -14,7 +14,7 @@ client.query('CREATE TABLE IF NOT EXISTS job_details( job_id VARCHAR(50) NOT NUL
     }
   })
 
-client.query('CREATE TABLE IF NOT EXISTS jobinputs( input_uid UUID NOT NULL PRIMARY KEY, job_title VARCHAR(50) NOT NULL, job_location VARCHAR(50) NOT NULL);', (err) => {
+client.query('CREATE TABLE IF NOT EXISTS jobinputs( input_uid UUID NOT NULL PRIMARY KEY, job_title VARCHAR(50) , job_location VARCHAR(50) );', (err) => {
     if (err) {
       console.log(err.stack)
     }

@@ -14,8 +14,8 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- TABLE TO STORE job_location and job_title 
 CREATE TABLE IF NOT EXISTS jobinputs(
     input_uid UUID NOT NULL PRIMARY KEY,
-    job_title VARCHAR(50) NOT NULL,
-    job_location VARCHAR(50) NOT NULL
+    job_title VARCHAR(50) ,
+    job_location VARCHAR(50)
 );
 
 -- TABLE TO STORE job details
