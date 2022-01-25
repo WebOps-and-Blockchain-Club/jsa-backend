@@ -13,12 +13,44 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({extended : true}));
 
+interface input{
+  job_title : string
+  job_location : string
+}
+
+//Bot
+const run_bot = async () =>{
+  const {rows : inputs} = await client.query("SELECT DISTINCT job_title,job_location from input_bot")
+  const {rowCount : total_req_count} = await client.query("SELECT * FROM input_bot");
+  const fetch_input : Array<input> = [];
+  await Promise.all(inputs.map(async(input) =>{
+     let req_count = await client.query("SELECT COUNT(*) from input_bot WHERE job_title = $1 AND job_location = $2",[input.job_title,input.job_location])
+      let percentage = 100*req_count.rows[0].count/ total_req_count;
+     if(percentage >= 50){
+      fetch_input.push(input)
+     }
+  }))
+  await Promise.all(fetch_input.map(async(input) =>{
+    console.log(input)
+    var config = {
+      method: 'get',
+      url: `http://localhost:5000/job-search?job_title=${input.job_title}&job_location=${input.job_location}`,
+      headers: { }
+    }
+    await axios(config)
+    .then(async(response : any) =>{
+     console.log(response)
+    })
+  })).catch(err => console.log(err))
+}
+setInterval(run_bot,86400000);
+
 // To get all jobs
 // /jobs?location=&title=
 app.get("/jobs",async (req,res)=>{
   try {
     const {location , title} = req.query;
-  
+    await client.query("INSERT INTO input_bot(input_uid , job_title, job_location) VALUES($1, $2 , $3)",[ uuidv4() ,title , location]);
 
     var jobs:any ;
     if(location == undefined && title == undefined)  
@@ -40,6 +72,7 @@ app.get("/jobs",async (req,res)=>{
     }
     else{
       // fetch the data from flask api
+      res.end();
       var config = {
         method: 'get',
         url: `http://localhost:5000/job-search?job_title=${title}&job_location=${location}`,
