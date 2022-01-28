@@ -38,16 +38,15 @@ CREATE TABLE IF NOT EXISTS input_details(
 );
 
 -- User details Table
-CREATE TABLE IF NOT EXISTS USER(
+CREATE TABLE IF NOT EXISTS usertable(
     id UUID NOT NULL PRIMARY KEY,
-    username TEXT NOT NULL,
-    age INT NOT NULL,
-    email TEXT NOT NULL,
-    gender TEXT NOT NULL,
-    experience TEXT NOT NULL,
+    username VARCHAR(50) NOT NULL,
+    email VARCHAR(50) NOT NULL,
+    resumestring VARCHAR(50) ,
+    experience VARCHAR(50) ,
     UNIQUE(email) 
 
-)
+);
 
 
 CREATE TABLE IF NOT EXISTS input_bot(
@@ -62,3 +61,4 @@ EXPLAIN ANALYSE SELECT COUNT(*) from input_bot WHERE job_title = 'Chennai' AND j
 -- TESTING
 -- INSERT INTO jobinputs(input_uid,job_title , job_location) VALUES(uuid_generate_v4(),'Developer','Chennai');
 -- INSERT INTO job_details(job_id, job_desk,job_employer , job_salary , job_description , job_description_html) VALUES('test','Times Jobs','test employer','22k','test des','test des html');
+-- INSERT INTO input_details(input_id,details_id) VALUES('','')
