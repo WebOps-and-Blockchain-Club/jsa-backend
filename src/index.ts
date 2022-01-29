@@ -66,17 +66,15 @@ app.get("/jobs",async (req,res)=>{
     else{
       jobs = await client.query("SELECT * FROM job_details INNER JOIN input_details ON job_details.job_id=input_details.details_id INNER JOIN jobinputs ON input_details.input_id=jobinputs.input_uid WHERE jobinputs.job_title=$1 AND jobinputs.job_location=$2" , [String(title).toLowerCase() , String(location).toLowerCase()]);
     }
-    
+
     if(jobs.rows.length !== 0){
       res.json(jobs.rows);
     }
     else{
       // fetch the data from flask api
-      res.end();
       var config = {
         method: 'get',
         url: `http://localhost:5000/job-search?job_title=${title}&job_location=${location}`,
-        headers: { }
       };
       
       await axios(config)
@@ -135,8 +133,19 @@ app.get("/job/:id",async (req,res)=>{
   }
 })
 
+app.post("/signup",async (req,res)=>{
+  try {
+    const {displayName , email} = req.body;
+    await client.query("INSERT INTO usertable(id,username,email) VALUES($1, $2 , $3)",[ uuidv4() ,displayName , email])
+    res.end();
+  } catch (error) {
+    res.json({"message": error.message})
+    res.end()
+  }
+})
+
 
 client.connect().then(() => {
   console.log("Connected to database");
-  app.listen(3000, () => console.log("Listening on port 3000!"));
+  app.listen(8000, () => console.log("Listening on port 8000!"));
 });

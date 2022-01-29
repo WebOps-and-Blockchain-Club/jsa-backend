@@ -56,7 +56,6 @@ CREATE TABLE IF NOT EXISTS input_bot(
 )
 
 CREATE INDEX CONCURRENTLY input_bot_tl_idx ON input_bot(job_title , job_location);
-EXPLAIN ANALYSE SELECT COUNT(*) from input_bot WHERE job_title = 'Chennai' AND job_location = 'Analyst';
 
 -- TESTING
 -- INSERT INTO jobinputs(input_uid,job_title , job_location) VALUES(uuid_generate_v4(),'Developer','Chennai');
