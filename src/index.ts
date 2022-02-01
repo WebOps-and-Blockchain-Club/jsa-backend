@@ -180,7 +180,7 @@ app.post("/signup", async (req, res) => {
       "INSERT INTO usertable(id,username,email) VALUES($1, $2 , $3)",
       [uuidv4(), displayName, email]
     );
-    res.end();
+    res.json({message: "Added User"});
   } catch (error) {
     res.json({ message: error.message });
     res.end();
@@ -192,8 +192,9 @@ app.get('/',(req, res)=>{
   console.log(req.params)
 })
 
+//TODO change log messages
 //connect to the database
 client.connect().then(() => {
   console.log("Connected to database");
-  app.listen(3000, () => console.log("Listening on port 3000!"));
+  app.listen(process.env.PORT, () => console.log("Listening on port "+process.env.PORT));
 });
