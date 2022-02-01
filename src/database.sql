@@ -11,6 +11,19 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- type \i PATH/src/db/dataBase.sql
 
+-- Table to store user details
+CREATE TABLE IF NOT EXISTS usertable(
+    id UUID NOT NULL PRIMARY KEY,
+    username VARCHAR(50) NOT NULL,
+    email VARCHAR(50) NOT NULL,
+    resumestring VARCHAR(50) ,
+    experience VARCHAR(50) ,
+    UNIQUE(email) 
+
+);
+
+
+
 -- TABLE TO STORE job_location and job_title 
 CREATE TABLE IF NOT EXISTS jobinputs(
     input_uid UUID NOT NULL PRIMARY KEY,
