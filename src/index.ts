@@ -187,6 +187,11 @@ app.post("/signup", async (req, res) => {
   }
 });
 
+app.get('/',(req, res)=>{
+  res.send('Listning on Port: '+process.env.PORT)
+  console.log(req.params)
+})
+
 //connect to the database
 client.connect().then(() => {
   console.log("Connected to database");
