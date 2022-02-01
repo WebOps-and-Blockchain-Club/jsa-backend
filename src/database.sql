@@ -48,12 +48,12 @@ CREATE TABLE IF NOT EXISTS usertable(
 
 );
 
-
+-- Table to query the the db frequently
 CREATE TABLE IF NOT EXISTS input_bot(
     input_uid UUID NOT NULL PRIMARY KEY,
     job_title VARCHAR(50) NOT NULL,
     job_location VARCHAR(50) NOT NULL
-)
+);
 
 CREATE INDEX CONCURRENTLY input_bot_tl_idx ON input_bot(job_title , job_location);
 

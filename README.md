@@ -13,6 +13,8 @@ An API endpoints of Job Data and User Management for Job Aggregator Website
 
 # Guide to use API
 
-| URI | HTTP Method | Inputs | Description                 |
-| --- | ----------- | ------ | --------------------------- |
-| /   | GET         | null   | To ensure server is running |
+| URI      | HTTP Method | Inputs                                                                                      | Description                 |
+| -------- | ----------- | ------------------------------------------------------------------------------------------- | --------------------------- |
+| /        | GET         | null                                                                                        | To ensure server is running |
+| /jobs    | GET         | query params with title ( Preferred Job Title ) and location ( Preferred Location for Job ) | To get the jobs             |
+| /job/:id | GET         | path params with job id                                                                     | To get job details          |
