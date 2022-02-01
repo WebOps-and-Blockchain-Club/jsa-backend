@@ -8,49 +8,59 @@ const { v4: uuidv4 } = require("uuid");
 const axios = require("axios");
 const cors = require("cors");
 const app = express();
+const config = require("../config.json");
 
 // middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({extended : true}));
+app.use(express.urlencoded({ extended: true }));
 
-interface input{
-  job_title : string
-  job_location : string
+interface input {
+  job_title: string;
+  job_location: string;
 }
 
 //Bot
-const run_bot = async () =>{
-  const {rows : inputs} = await client.query("SELECT DISTINCT job_title,job_location from input_bot")
-  const {rowCount : total_req_count} = await client.query("SELECT * FROM input_bot");
-  const fetch_input : Array<input> = [];
-  await Promise.all(inputs.map(async(input) =>{
-     let req_count = await client.query("SELECT COUNT(*) from input_bot WHERE job_title = $1 AND job_location = $2",[input.job_title,input.job_location])
-      let percentage = 100*req_count.rows[0].count/ total_req_count;
-     if(percentage >= 50){
-      fetch_input.push(input)
-     }
-  }))
-  await Promise.all(fetch_input.map(async(input) =>{
-    console.log(input)
-    var config = {
-      method: 'get',
-      url: `http://localhost:5000/job-search?job_title=${input.job_title}&job_location=${input.job_location}`,
-      headers: { }
-    }
-    await axios(config)
-    .then(async(response : any) =>{
-     console.log(response)
+const run_bot = async () => {
+  const { rows: inputs } = await client.query(
+    "SELECT DISTINCT job_title,job_location from input_bot"
+  );
+  const { rowCount: total_req_count } = await client.query(
+    "SELECT * FROM input_bot"
+  );
+  let fetch_input: Array<input> = [];
+  await Promise.all(
+    inputs.map(async (input) => {
+      let req_count = await client.query(
+        "SELECT COUNT(*) from input_bot WHERE job_title = $1 AND job_location = $2",
+        [input.job_title, input.job_location]
+      );
+      let percentage = (100 * req_count.rows[0].count) / total_req_count;
+      if (percentage >= config.bot_percentage) {
+        fetch_input.push(input);
+      }
     })
-  })).catch(err => console.log(err))
-}
-setInterval(run_bot,86400000);
+  );
+  await Promise.all(
+    fetch_input.map(async (input) => {
+      console.log(input);
+      var config = {
+        method: "get",
+        url: `${process.env.FLASKAPI_URL}/job-search?job_title=${input.job_title}&job_location=${input.job_location}`,
+        headers: {},
+      };
+      await axios(config).then(async (response: any) => {
+        console.log(response);
+      });
+    })
+  ).catch((err) => console.log(err));
+};
+setInterval(run_bot, config.bot_interval);
 
 // To get all jobs with query params
 app.get("/jobs", async (req, res) => {
   try {
-    const {location , title} = req.query;
-    await client.query("INSERT INTO input_bot(input_uid , job_title, job_location) VALUES($1, $2 , $3)",[ uuidv4() ,title , location]);
+    const { location, title } = req.query;
 
     var jobs: any;
 
@@ -72,21 +82,26 @@ app.get("/jobs", async (req, res) => {
         [String(location).toLowerCase()]
       );
     } else {
+      await client.query(
+        "INSERT INTO input_bot(input_uid , job_title, job_location) VALUES($1, $2 , $3)",
+        [uuidv4(), title, location]
+      );
       jobs = await client.query(
         "SELECT * FROM job_details INNER JOIN input_details ON job_details.job_id=input_details.details_id INNER JOIN jobinputs ON input_details.input_id=jobinputs.input_uid WHERE jobinputs.job_title=$1 AND jobinputs.job_location=$2",
         [String(title).toLowerCase(), String(location).toLowerCase()]
       );
     }
 
-    if(jobs.rows.length !== 0){
+    console.log(String(title).toLowerCase(), String(location).toLowerCase());
+    if (jobs.rows.length !== 0) {
       res.json(jobs.rows);
     }
     // job title and job location combination is not present then it willl scrap the data from flask api
     else {
       // fetch the data from flask api
       var config = {
-        method: 'get',
-        url: `http://localhost:5000/job-search?job_title=${title}&job_location=${location}`,
+        method: "get",
+        url: `${process.env.FLASKAPI_URL}/job-search?job_title=${title}&job_location=${location}`,
       };
 
       await axios(config)
@@ -105,22 +120,26 @@ app.get("/jobs", async (req, res) => {
           if (jobinputs.rows.length == 0) {
             await client.query(
               "INSERT INTO jobinputs(input_uid , job_title, job_location) VALUES($1, $2 , $3)",
-              [uuidv4(), title, location]
+              [
+                uuidv4(),
+                String(title).toLowerCase(),
+                String(location).toLowerCase(),
+              ]
             );
             if (title && location) {
               jobinputs = await client.query(
                 "SELECT input_uid FROM jobinputs WHERE job_title=$1 AND job_location=$2",
-                [title, location]
+                [String(title).toLowerCase(), String(location).toLowerCase()]
               );
             } else if (title && location == undefined) {
               jobinputs = await client.query(
                 "SELECT input_uid FROM jobinputs WHERE job_title=$1",
-                [title]
+                [String(title).toLowerCase()]
               );
             } else {
               jobinputs = await client.query(
                 "SELECT input_uid FROM jobinputs WHERE job_location=$1",
-                [location]
+                [String(location).toLowerCase()]
               );
             }
           }
@@ -213,32 +232,37 @@ app.post("/signup", async (req, res) => {
       "INSERT INTO usertable(id,username,email) VALUES($1, $2 , $3)",
       [uuidv4(), displayName, email]
     );
-    res.json({message: "Added User"});
+    res.json({ message: "Added User" });
   } catch (error) {
     res.json({ message: error.message });
     res.end();
   }
 });
 
-app.post("/signup",async (req,res)=>{
+app.post("/signup", async (req, res) => {
   try {
-    const {displayName , email} = req.body;
-    await client.query("INSERT INTO usertable(id,username,email) VALUES($1, $2 , $3)",[ uuidv4() ,displayName , email])
+    const { displayName, email } = req.body;
+    await client.query(
+      "INSERT INTO usertable(id,username,email) VALUES($1, $2 , $3)",
+      [uuidv4(), displayName, email]
+    );
     res.end();
   } catch (error) {
-    res.json({"message": error.message})
-    res.end()
+    res.json({ message: error.message });
+    res.end();
   }
-})
+});
 
-app.get('/',(req, res)=>{
-  res.send('Listning on Port: '+process.env.PORT)
-  console.log(req.params)
-})
+app.get("/", (req, res) => {
+  res.send("Listning on Port: " + process.env.PORT);
+  console.log(req.params);
+});
 
 //TODO change log messages
 //connect to the database
 client.connect().then(() => {
   console.log("Connected to database");
-  app.listen(process.env.PORT, () => console.log("Listening on port "+process.env.PORT));
+  app.listen(process.env.PORT, () =>
+    console.log("Listening on port " + process.env.PORT)
+  );
 });
