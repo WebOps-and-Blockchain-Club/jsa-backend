@@ -1,14 +1,15 @@
 import express from "express";
-
 import * as dotenv from "dotenv";
 dotenv.config();
 import client from "./db/postgres";
+import { fileFilter, fileStorage } from "./utils/multer";
 
 const { v4: uuidv4 } = require("uuid");
 const axios = require("axios");
 const cors = require("cors");
 const app = express();
 const config = require("../config.json");
+const multer = require("multer");
 
 // middleware
 app.use(cors());
@@ -239,18 +240,23 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-app.post("/signup", async (req, res) => {
-  try {
-    const { displayName, email } = req.body;
-    await client.query(
-      "INSERT INTO usertable(id,username,email) VALUES($1, $2 , $3)",
-      [uuidv4(), displayName, email]
-    );
-    res.end();
-  } catch (error) {
-    res.json({ message: error.message });
-    res.end();
-  }
+// Resume Upload
+var upload = multer({
+  storage: fileStorage,
+  fileFilter: fileFilter,
+  limits: { fileSize: config.max_filesize },
+}).single("file");
+
+app.post("/upload", function (req, res) {
+  upload(req, res, function (err: Error) {
+    console.log(err);
+    if (err instanceof multer.MulterError) {
+      return res.status(500).json(err).end();
+    } else if (err) {
+      return res.json(err).end();
+    }
+    return res.status(200).json({ message: "File Uploaded Succesfully" }).end();
+  });
 });
 
 app.get("/", (req, res) => {
