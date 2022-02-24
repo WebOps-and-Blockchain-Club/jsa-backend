@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS job_details(
     job_link VARCHAR NOT NULL,
     job_description VARCHAR NOT NULL,
     job_description_html VARCHAR NOT NULL,
+    job_skills VARCHAR(100)
     PRIMARY KEY (job_id)
 );
 
@@ -44,6 +45,7 @@ CREATE TABLE IF NOT EXISTS usertable(
     email VARCHAR(50) NOT NULL,
     resumestring VARCHAR(50) ,
     experience VARCHAR(50) ,
+    skills VARCHAR(100) 
     UNIQUE(email) 
 
 );

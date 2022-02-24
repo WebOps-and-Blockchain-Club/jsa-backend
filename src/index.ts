@@ -3,6 +3,7 @@ import * as dotenv from "dotenv";
 dotenv.config();
 import client from "./db/postgres";
 import { fileFilter, fileStorage } from "./utils/multer";
+import { Recommendations } from "./utils/recommendationmodel";
 
 const { v4: uuidv4 } = require("uuid");
 const axios = require("axios");
@@ -10,11 +11,15 @@ const cors = require("cors");
 const app = express();
 const config = require("../config.json");
 const multer = require("multer");
+const fs = require("fs");
+var bodyParser = require("body-parser");
 
 // middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 interface input {
   job_title: string;
@@ -244,19 +249,53 @@ app.post("/signup", async (req, res) => {
 var upload = multer({
   storage: fileStorage,
   fileFilter: fileFilter,
-  limits: { fileSize: config.max_filesize },
-}).single("file");
+  // limits: { fileSize: config.max_filesize },
+}).single('file');
 
-app.post("/upload", function (req, res) {
-  upload(req, res, function (err: Error) {
-    console.log(err);
+app.post("/upload", async (req, res) => {
+  upload(req, res, async (err: Error) => {
     if (err instanceof multer.MulterError) {
       return res.status(500).json(err).end();
     } else if (err) {
       return res.json(err).end();
     }
-    return res.status(200).json({ message: "File Uploaded Succesfully" }).end();
+    var data = fs.readFileSync(`./Resumes/${req.file?.filename}`);
+    var config = {
+      method: "post",
+      url: `${process.env.FLASKAPI_URL}/resume`,
+      data: data,
+    };
+
+    // Send Resume to flask api
+    await axios(config)
+      .then(async (response: any) => {
+        await client.query(
+          "INSERT INTO usertable(skills,resumestring) VALUES($1,$2) WHERE email = $3",
+          [response.data, `./Resumes/${req.file?.filename}`]
+        );
+      })
+      .catch(function (error: Error) {
+        console.log(error);
+      });
+    return res.status(200).json({ message: "File Uploaded Succesfully" });
   });
+});
+
+app.get("/recommendations", async (_, res) => {
+  // const {email} = req.params;
+
+  // const userSkills = await client.query("SELECT skills from use ")
+
+  //Test
+  const recommendations = await Recommendations({
+    userSkills: "Test skill1 skill2",
+    jobs: [
+      { jobid: "job1", jobskills: "test skill1" },
+      { jobid: "job1", jobskills: "test" },
+      { jobid: "job1", jobskills: "test skill3 skill1 skill2" },
+    ],
+  });
+  res.json(recommendations);
 });
 
 app.get("/", (req, res) => {
