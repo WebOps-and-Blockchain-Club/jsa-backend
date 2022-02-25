@@ -18,10 +18,10 @@ interface recommendation {
 export const Recommendations = async ({ userSkills, jobs }: props) => {
   let recommendations: Array<recommendation> = [];
   await Promise.all(
-    jobs.map((job) => {
+    jobs.map(async (job) => {
       recommendations.push({
         jobid: job.jobid,
-        similarity: similarity(userSkills, job.jobskills)
+        similarity: await similarity(userSkills, job.jobskills),
       });
     })
   );

@@ -1,11 +1,10 @@
-import express, { NextFunction, Request, Response } from "express";
+import express, { NextFunction, Response, Request } from "express";
 import * as dotenv from "dotenv";
 dotenv.config();
 import client from "./db/postgres";
 import { fileFilter, fileStorage } from "./utils/multer";
 import { Recommendations } from "./utils/recommendationmodel";
 import jwt from "jsonwebtoken";
-
 
 const { v4: uuidv4 } = require("uuid");
 const axios = require("axios");
@@ -26,6 +25,19 @@ app.use(bodyParser.urlencoded({ extended: true }));
 interface input {
   job_title: string;
   job_location: string;
+}
+
+interface User {
+  id: string;
+  username: string;
+  email: string;
+  resumestring?: string;
+  skills?: string;
+}
+declare module "express-serve-static-core" {
+  export interface Request {
+    currentUser: User;
+  }
 }
 
 //Bot
@@ -232,23 +244,30 @@ app.get("/job/:id", async (req, res) => {
     console.log(error.message);
   }
 });
-const verifyToken = (req : Request, res : Response, next : NextFunction) => {
-  if(req.headers.cookie) {
+const verifyToken = (req: Request, res: Response, next: NextFunction) => {
+  if (req.headers.cookie) {
     let token = req.headers.cookie.split("token=")[1];
-    console.log(token)
     if (!token) {
-      return res.status(403).json({message : "Session Expired Please login again"}).end();
+      return res
+        .status(403)
+        .json({ message: "Session Expired Please login again" })
+        .end();
     }
-    if(token){
-      token.split(";").length > 1 ? token = token.split(";")[0] : null
+    if (token) {
+      token.split(";").length > 1 ? (token = token.split(";")[0]) : null;
     }
-    if(token){
-      const decoded = jwt.verify(token, process.env.JWT_SECRET ||  "secret" ) as any;
-      console.log("decoded",decoded)
+    if (token) {
+      const decoded = jwt.verify(
+        token,
+        process.env.JWT_SECRET || "secret"
+      ) as any;
+      req.currentUser = decoded;
+      console.log("decoded", decoded);
     }
+
     return next();
   }
-  return res.json({message : "Please Login to continue"}).end();
+  return res.json({ message: "Please Login to continue" }).end();
 };
 
 app.post("/signup", async (req, res) => {
@@ -256,35 +275,32 @@ app.post("/signup", async (req, res) => {
     const { displayName, email } = req.body;
 
     if (!(email && displayName)) {
-      return res.json({ message: "Some Error occured Please Try Again Later" }).end();
+      return res
+        .json({ message: "Some Error occured Please Try Again Later" })
+        .end();
     }
-    const userM = await client.query("SELECT * FROM usertable WHERE email = $1",[email])
+    const { rows: user } = await client.query(
+      "SELECT * FROM usertable WHERE email = $1",
+      [email]
+    );
 
-    if(userM.rowCount > 0){
-       const token = jwt.sign(
-        { user: userM },
-        process.env.JWT_SECRET!,
-        {
-          expiresIn: "2 days",
-        }
-      );
-     return  res.cookie("token", token ).end();
+    if (user.length > 0) {
+      const token = jwt.sign({ user: user }, process.env.JWT_SECRET!, {
+        expiresIn: "2 days",
+      });
+      return res.cookie("token", token).end();
     }
-  
+
     await client.query(
       "INSERT INTO usertable(id,username,email) VALUES($1, $2 , $3)",
       [uuidv4(), displayName, email]
     );
 
-    const token = jwt.sign(
-      { user: userM },
-      process.env.JWT_SECRET!,
-      {
-        expiresIn: "2 days",
-      }
-    );
-    res.cookie("token", token )
-   return  res.json({ message: "Added User" }).end();
+    const token = jwt.sign({ user: user }, process.env.JWT_SECRET!, {
+      expiresIn: "2 days",
+    });
+    res.cookie("token", token);
+    return res.json({ message: "Added User" }).end();
   } catch (error) {
     res.json({ message: error.message });
     res.end();
@@ -292,9 +308,7 @@ app.post("/signup", async (req, res) => {
 });
 
 app.post("/signout", async (_, res) => {
-
   return res.cookie("token", "", { httpOnly: true, maxAge: 1 }).end();
-
 });
 
 // Resume Upload
@@ -302,9 +316,9 @@ var upload = multer({
   storage: fileStorage,
   fileFilter: fileFilter,
   // limits: { fileSize: config.max_filesize },
-}).single('file');
+}).single("file");
 
-app.post("/upload", async (req, res) => {
+app.post("/upload", verifyToken, async (req, res) => {
   upload(req, res, async (err: Error) => {
     if (err instanceof multer.MulterError) {
       return res.status(500).json(err).end();
@@ -333,9 +347,9 @@ app.post("/upload", async (req, res) => {
   });
 });
 
-app.get("/recommendations",verifyToken, async (_, res) => {
+app.get("/recommendations", verifyToken, async (req: Request, res) => {
   // const {email} = req.params;
-
+  console.log("in recoomendation", req.currentUser);
   // const userSkills = await client.query("SELECT skills from use ")
 
   //Test
