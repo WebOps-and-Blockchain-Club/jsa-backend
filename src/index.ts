@@ -5,6 +5,7 @@ import client from "./db/postgres";
 import { fileFilter, fileStorage } from "./utils/multer";
 import { Recommendations } from "./utils/recommendationmodel";
 import jwt from "jsonwebtoken";
+import path from "path";
 
 const { v4: uuidv4 } = require("uuid");
 const axios = require("axios");
@@ -14,6 +15,7 @@ const config = require("../config.json");
 const multer = require("multer");
 const fs = require("fs");
 var bodyParser = require("body-parser");
+var cookieParser = require("cookie-parser");
 
 // middleware
 app.use(cors());
@@ -21,6 +23,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 interface input {
   job_title: string;
@@ -70,7 +73,36 @@ const run_bot = async () => {
         headers: {},
       };
       await axios(config).then(async (response: any) => {
-        console.log(response);
+        const data = response;
+
+        await Promise.all(
+          data.map(async (job: any) => {
+            //Get the inputs id
+            const { rows: input_id } = await client.query(
+              "SELECT input_uid FROM job_inputs WHERE job_title = $1 AND job_location = $2",
+              [input.job_title, input.job_location]
+            );
+            // Insert jobs into job details table
+            await client.query(
+              "INSERT INTO job_details(job_id, job_title , job_description ,job_description_html , job_desk , job_employer , job_link , job_salary) VALUES($1, $2 , $3, $4 , $5, $6, $7, $8 )",
+              [
+                job.id,
+                job.title,
+                job.description,
+                job.description_html,
+                job.desk,
+                job.employer,
+                job.link,
+                job.salary,
+              ]
+            );
+            // Insert into many to many relation table
+            await client.query(
+              " INSERT INTO input_details(input_id,details_id) VALUES($1,$2)",
+              [input_id, job.id]
+            );
+          })
+        );
       });
     })
   ).catch((err) => console.log(err));
@@ -245,8 +277,8 @@ app.get("/job/:id", async (req, res) => {
   }
 });
 const verifyToken = (req: Request, res: Response, next: NextFunction) => {
-  if (req.headers.cookie) {
-    let token = req.headers.cookie.split("token=")[1];
+  if (req.cookies.jsaToken) {
+    let token = req.cookies.jsaToken;
     if (!token) {
       return res
         .status(403)
@@ -254,17 +286,12 @@ const verifyToken = (req: Request, res: Response, next: NextFunction) => {
         .end();
     }
     if (token) {
-      token.split(";").length > 1 ? (token = token.split(";")[0]) : null;
-    }
-    if (token) {
       const decoded = jwt.verify(
         token,
         process.env.JWT_SECRET || "secret"
       ) as any;
-      req.currentUser = decoded;
-      console.log("decoded", decoded);
+      req.currentUser = decoded.user[0];
     }
-
     return next();
   }
   return res.json({ message: "Please Login to continue" }).end();
@@ -280,7 +307,7 @@ app.post("/signup", async (req, res) => {
         .end();
     }
     const { rows: user } = await client.query(
-      "SELECT * FROM usertable WHERE email = $1",
+      "SELECT * FROM user_table WHERE email = $1",
       [email]
     );
 
@@ -288,44 +315,57 @@ app.post("/signup", async (req, res) => {
       const token = jwt.sign({ user: user }, process.env.JWT_SECRET!, {
         expiresIn: "2 days",
       });
-      return res.cookie("token", token).end();
+      res.cookie("jsaToken", token);
+      return res.json({ message: "User logged in" }).end();
     }
 
     await client.query(
-      "INSERT INTO usertable(id,username,email) VALUES($1, $2 , $3)",
+      "INSERT INTO user_table(id,username,email) VALUES($1, $2 , $3)",
       [uuidv4(), displayName, email]
     );
 
     const token = jwt.sign({ user: user }, process.env.JWT_SECRET!, {
       expiresIn: "2 days",
     });
-    res.cookie("token", token);
+    res.cookie("jsaToken", token);
     return res.json({ message: "Added User" }).end();
   } catch (error) {
-    res.json({ message: error.message });
-    res.end();
+    res.json({ message: error.message }).end();
   }
 });
 
 app.post("/signout", async (_, res) => {
-  return res.cookie("token", "", { httpOnly: true, maxAge: 1 }).end();
+  return res
+    .cookie("jsaToken", "", { httpOnly: true, maxAge: 1 })
+    .json({ message: "Logged out Successfully" })
+    .end();
+});
+
+app.get("/profile", verifyToken, async (req: Request, res) => {
+  if (req.currentUser) {
+    return res.json(req.currentUser).end();
+  }
 });
 
 // Resume Upload
 var upload = multer({
   storage: fileStorage,
   fileFilter: fileFilter,
-  // limits: { fileSize: config.max_filesize },
+  limits: { fileSize: config.max_filesize },
 }).single("file");
 
 app.post("/upload", verifyToken, async (req, res) => {
+  const dirPublic = path.join(__dirname, `../Resumes`);
+  if (!fs.existsSync(dirPublic)) {
+    fs.mkdirSync(dirPublic);
+  }
   upload(req, res, async (err: Error) => {
     if (err instanceof multer.MulterError) {
       return res.status(500).json(err).end();
     } else if (err) {
       return res.json(err).end();
     }
-    var data = fs.readFileSync(`./Resumes/${req.file?.filename}`);
+    var data = fs.readFileSync(`./Resumes/${req.currentUser.resumestring}`);
     var config = {
       method: "post",
       url: `${process.env.FLASKAPI_URL}/resume`,
@@ -336,8 +376,8 @@ app.post("/upload", verifyToken, async (req, res) => {
     await axios(config)
       .then(async (response: any) => {
         await client.query(
-          "INSERT INTO usertable(skills,resumestring) VALUES($1,$2) WHERE email = $3",
-          [response.data, `./Resumes/${req.file?.filename}`]
+          "INSERT INTO user_table(skills,resumestring) VALUES($1,$2) WHERE email = $3",
+          [response.data, req.currentUser.resumestring, req.currentUser.email]
         );
       })
       .catch(function (error: Error) {
@@ -348,20 +388,19 @@ app.post("/upload", verifyToken, async (req, res) => {
 });
 
 app.get("/recommendations", verifyToken, async (req: Request, res) => {
-  // const {email} = req.params;
-  console.log("in recoomendation", req.currentUser);
-  // const userSkills = await client.query("SELECT skills from use ")
+  const { rows: userSkills } = await client.query(
+    "SELECT skills FROM user_table where email = $1",
+    [req.currentUser.email]
+  );
+  const { rows: jobs } = await client.query(
+    "SELECT job_id , job_skills FROM job_details"
+  );
 
-  //Test
   const recommendations = await Recommendations({
-    userSkills: "Test skill1 skill2",
-    jobs: [
-      { jobid: "job1", jobskills: "test skill1" },
-      { jobid: "job1", jobskills: "test" },
-      { jobid: "job1", jobskills: "test skill3 skill1 skill2" },
-    ],
+    userSkills: userSkills[0],
+    jobs,
   });
-  res.json(recommendations);
+  res.json(recommendations).end();
 });
 
 app.get("/", (req, res) => {

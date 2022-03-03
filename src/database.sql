@@ -12,7 +12,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- type \i PATH/src/db/dataBase.sql
 
 -- TABLE TO STORE job_location and job_title 
-CREATE TABLE IF NOT EXISTS jobinputs(
+CREATE TABLE IF NOT EXISTS job_inputs(
     input_uid UUID NOT NULL PRIMARY KEY,
     job_title VARCHAR(50) ,
     job_location VARCHAR(50)
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS job_details(
     job_link VARCHAR NOT NULL,
     job_description VARCHAR NOT NULL,
     job_description_html VARCHAR NOT NULL,
-    job_skills VARCHAR(100)
+    job_skills VARCHAR(100),
     PRIMARY KEY (job_id)
 );
 
@@ -39,13 +39,13 @@ CREATE TABLE IF NOT EXISTS input_details(
 );
 
 -- User details Table
-CREATE TABLE IF NOT EXISTS usertable(
+CREATE TABLE IF NOT EXISTS user_table(
     id UUID NOT NULL PRIMARY KEY,
     username VARCHAR(50) NOT NULL,
     email VARCHAR(50) NOT NULL,
     resumestring VARCHAR(50) ,
     experience VARCHAR(50) ,
-    skills VARCHAR(100) 
+    skills VARCHAR(100), 
     UNIQUE(email) 
 
 );
@@ -57,9 +57,9 @@ CREATE TABLE IF NOT EXISTS input_bot(
     job_location VARCHAR(50) NOT NULL
 );
 
-CREATE INDEX CONCURRENTLY input_bot_tl_idx ON input_bot(job_title , job_location);
+CREATE IF NOT EXISTS INDEX CONCURRENTLY input_bot_tl_idx ON input_bot(job_title , job_location);
 
 -- TESTING
 -- INSERT INTO jobinputs(input_uid,job_title , job_location) VALUES(uuid_generate_v4(),'Developer','Chennai');
--- INSERT INTO job_details(job_id, job_desk,job_employer , job_salary , job_description , job_description_html) VALUES('test','Times Jobs','test employer','22k','test des','test des html');
+-- INSERT INTO job_details(job_id, job_desk,job_employer ,job_title, job_salary , job_description , job_description_html,job_skills) VALUES('test','Times Jobs','test employer','test',22k','test des','test des html','Skill1','Skill2');
 -- INSERT INTO input_details(input_id,details_id) VALUES('','')
