@@ -1,4 +1,5 @@
 import { FileFilterCallback } from "multer";
+import { Request } from "express";
 
 var multer = require("multer");
 
@@ -14,11 +15,14 @@ export const fileStorage = multer.diskStorage({
     callback(null, "./Resumes");
   },
   filename: (
-    _: Request,
+    req: Request,
     file: Express.Multer.File,
     callback: FileNameCallback
   ): void => {
-    callback(null, Date.now() + "-" + file.originalname);
+    const time = Date.now();
+    const filetype = file.mimetype.split("/").slice(-1)[0];
+    req.currentUser.resumestring = `${req.currentUser.id}_${time}.${filetype}`;
+    callback(null, `${req.currentUser.id}_${time}.${filetype}`);
   },
 });
 
