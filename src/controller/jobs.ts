@@ -1,8 +1,9 @@
+import { Request, Response } from "express";
 import client from "../db/postgres";
 const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
 
-export async function jobId(req: any, res: any) {
+export async function jobId(req: Request, res: Response) {
   try {
     const { id } = req.params;
     if (id == undefined) {
@@ -19,7 +20,7 @@ export async function jobId(req: any, res: any) {
   }
 }
 
-export async function jobs(res: any, req: any) {
+export async function jobs(req: Request, res: Response) {
   try {
     const { location, title } = req.query;
 
