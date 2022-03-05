@@ -1,13 +1,21 @@
 import express from "express";
-
 import * as dotenv from "dotenv";
 dotenv.config();
 import client from "./db/postgres";
-import { profile, recommendations, signout, signup, verifyToken } from "./controller/user";
+import {
+  profile,
+  recommendations,
+  resumeupload,
+  signout,
+  signup,
+  verifyToken,
+} from "./controller/user";
 import { jobId, jobs } from "./controller/jobs";
+import { run_bot } from "./utils/bot";
 
 const cors = require("cors");
 var cookieParser = require("cookie-parser");
+const config = require("../config.json");
 const app = express();
 
 // middleware
@@ -15,6 +23,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+//Bot
+setInterval(run_bot, config.bot_interval);
 
 // To get all jobs with query params
 app.get("/jobs", jobs);
@@ -33,6 +44,9 @@ app.get("/profile", verifyToken, profile);
 
 // Job Recommendations
 app.get("/recommendations", verifyToken, recommendations);
+
+// Resume Upload
+app.post("/upload", verifyToken, resumeupload);
 
 app.get("/", (req, res) => {
   res.send("Listning on Port: " + process.env.PORT);

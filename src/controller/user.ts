@@ -3,6 +3,13 @@ import client from "../db/postgres";
 const { v4: uuidv4 } = require("uuid");
 import jwt from "jsonwebtoken";
 import { Recommendations } from "../utils/recommendationmodel";
+import { fileFilter, fileStorage } from "../utils/multer";
+import path from "path";
+const axios = require("axios");
+const multer = require("multer");
+const config = require("../../config.json");
+const fs = require("fs");
+var reader = require("any-text");
 
 interface User {
   id: string;
@@ -109,4 +116,57 @@ export async function recommendations(req: Request, res: Response) {
     jobs,
   });
   return res.json(recommendations).end();
+}
+
+export async function resumeupload(req: Request, res: Response) {
+  var upload = multer({
+    storage: fileStorage,
+    fileFilter: fileFilter,
+    limits: { fileSize: config.max_filesize },
+  }).single("file");
+  const dirPublic = path.join(__dirname, `../../Resumes`);
+
+  if (!fs.existsSync(dirPublic)) {
+    fs.mkdirSync(dirPublic);
+  }
+  try {
+    upload(req, res, async (err: Error) => {
+      if (err instanceof multer.MulterError) {
+        return res.status(500).json({ message: err.message }).end();
+      } else if (err) {
+        return res.json({ message: err.message }).end();
+      } else if (req.fileUploadError) {
+        return res.json({ message: req.fileUploadError }).end();
+      }
+      await reader
+        .getText(`./Resumes/${req.currentUser.resumestring}`)
+        .then(async function (data: any) {
+          var config = {
+            method: "post",
+            url: `${process.env.FLASKAPI_URL}/resume`,
+            data,
+          };
+          // Send Resume to flask api
+          await axios(config)
+            .then(async (response: any) => {
+              await client.query(
+                "UPDATE user_table SET skills = $1,resumestring = $2,resumetext = $3  WHERE id = $4",
+                [
+                  response.data,
+                  req.currentUser.resumestring,
+                  data,
+                  req.currentUser.id,
+                ]
+              );
+            })
+            .catch(function (error: Error) {
+              return res.json({ message: error.message }).end();
+            });
+        });
+
+      return res.status(200).json({ message: "File Uploaded Succesfully" });
+    });
+  } catch (err) {
+    res.json({ message: err.message }).end();
+  }
 }
