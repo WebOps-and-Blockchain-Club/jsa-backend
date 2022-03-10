@@ -1,7 +1,23 @@
 import { Request, Response } from "express";
+import { Recommendations } from "../utils/recommendationmodel";
 import client from "../db/postgres";
+import { verifyToken2 } from "../utils/auth";
 const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
+
+interface User {
+  id: string;
+  username: string;
+  email: string;
+  resumestring?: string;
+  skills?: string;
+}
+declare module "express-serve-static-core" {
+  export interface Request {
+    currentUser: User;
+    fileUploadError?: string;
+  }
+}
 
 export async function jobId(req: Request, res: Response) {
   try {
@@ -51,14 +67,21 @@ export async function jobs(req: Request, res: Response) {
     }
 
     if (jobs.rows.length !== 0) {
-      res.json(jobs.rows);
+      verifyToken2(req, res)
+        ? res.json(
+            await Recommendations({
+              userSkills: req.currentUser.skills!,
+              jobs: jobs.rows,
+            })
+          )
+        : res.json(jobs.rows);
     }
     // job title and job location combination is not present then it willl scrap the data from flask api
     else {
       // fetch the data from flask api
       var config = {
         method: "get",
-        url: `http://3.137.153.73/job-search?job_title=${title}&job_location=${location}`,
+        url: `http://3.110.192.248:8000/job-search?job_title=${title}&job_location=${location}`,
         headers: {},
       };
 
@@ -67,7 +90,7 @@ export async function jobs(req: Request, res: Response) {
           // res.json(response.data);             will return the jobs directly from flask api
 
           //first we will store the jobs
-
+          console.log(response)
           //check whether jobinputs is present or not in data base
           var jobinputs = await client.query(
             "SELECT input_uid FROM jobinputs WHERE job_title=$1 AND job_location=$2",
@@ -108,7 +131,7 @@ export async function jobs(req: Request, res: Response) {
               );
               if (jobs.rows.length == 0) {
                 await client.query(
-                  "INSERT INTO job_details(job_id, job_title , job_description ,job_description_html , job_desk , job_employer , job_link , job_salary) VALUES($1, $2 , $3, $4 , $5, $6, $7, $8 )",
+                  "INSERT INTO job_details(job_id, job_title , job_description ,job_description_html , job_desk , job_employer , job_link , job_salary,job_skills) VALUES($1, $2 , $3, $4 , $5, $6, $7, $8, $9 )",
                   [
                     job.id,
                     job.title,
@@ -118,6 +141,7 @@ export async function jobs(req: Request, res: Response) {
                     job.employer,
                     job.link,
                     job.salary,
+                    job.skills
                   ]
                 );
               }
@@ -136,19 +160,40 @@ export async function jobs(req: Request, res: Response) {
               "SELECT * FROM job_details INNER JOIN input_details ON job_details.job_id=input_details.details_id INNER JOIN jobinputs ON input_details.input_id=jobinputs.input_uid WHERE jobinputs.job_title=$1",
               [String(title).toLowerCase()]
             );
-            res.json(jobs.rows);
+            verifyToken2(req, res)
+              ? res.json(
+                  Recommendations({
+                    userSkills: req.currentUser.skills!,
+                    jobs: jobs.rows,
+                  })
+                )
+              : res.json(jobs.rows);
           } else if (title == undefined && location) {
             jobs = await client.query(
               "SELECT * FROM job_details INNER JOIN input_details ON job_details.job_id=input_details.details_id INNER JOIN jobinputs ON input_details.input_id=jobinputs.input_uid WHERE jobinputs.job_location=$1",
               [String(location).toLowerCase()]
             );
-            res.json(jobs.rows);
+            verifyToken2(req, res)
+              ? res.json(
+                  Recommendations({
+                    userSkills: req.currentUser.skills!,
+                    jobs: jobs.rows,
+                  })
+                )
+              : res.json(jobs.rows);
           } else {
             jobs = await client.query(
               "SELECT * FROM job_details INNER JOIN input_details ON job_details.job_id=input_details.details_id INNER JOIN jobinputs ON input_details.input_id=jobinputs.input_uid WHERE jobinputs.job_title=$1 AND jobinputs.job_location=$2",
               [String(title).toLowerCase(), String(location).toLowerCase()]
             );
-            res.json(jobs.rows);
+            verifyToken2(req, res)
+              ? res.json(
+                  Recommendations({
+                    userSkills: req.currentUser.skills!,
+                    jobs: jobs.rows,
+                  })
+                )
+              : res.json(jobs.rows);
           }
         })
         .catch(function (error: any) {

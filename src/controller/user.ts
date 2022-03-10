@@ -108,9 +108,7 @@ export async function recommendations(req: Request, res: Response) {
     "SELECT skills FROM user_table where email = $1",
     [req.currentUser.email]
   );
-  const { rows: jobs } = await client.query(
-    "SELECT job_id , job_skills FROM job_details"
-  );
+  const { rows: jobs } = await client.query("SELECT * FROM job_details");
   const recommendations = await Recommendations({
     userSkills: userSkills[0].skills,
     jobs,

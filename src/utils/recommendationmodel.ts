@@ -3,6 +3,13 @@ var similarity = require("string-cosine-similarity");
 interface JOB {
   job_id: string;
   job_skills: string;
+  job_title: string;
+  job_desk: string;
+  job_employer: string;
+  job_salary: string;
+  job_link: string;
+  job_description: string;
+  job_description_html: string;
 }
 
 interface props {
@@ -12,6 +19,14 @@ interface props {
 
 interface recommendation {
   job_id: string;
+  job_skills: string;
+  job_title: string;
+  job_desk: string;
+  job_employer: string;
+  job_salary: string;
+  job_link: string;
+  job_description: string;
+  job_description_html: string;
   similarity: number;
 }
 
@@ -19,10 +34,12 @@ export const Recommendations = async ({ userSkills, jobs }: props) => {
   let recommendations: Array<recommendation> = [];
   await Promise.all(
     jobs.map(async (job) => {
-      recommendations.push({
-        job_id: job.job_id,
-        similarity: await similarity(userSkills, job.job_skills),
-      });
+      if (job.job_skills) {
+        recommendations.push({
+          ...job,
+          similarity: (await similarity(userSkills, job.job_skills)) * 100,
+        });
+      }
     })
   );
 

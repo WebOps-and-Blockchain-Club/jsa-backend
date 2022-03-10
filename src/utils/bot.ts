@@ -47,7 +47,7 @@ export const run_bot = async () => {
             );
             // Insert jobs into job details table
             await client.query(
-              "INSERT INTO job_details(job_id, job_title , job_description ,job_description_html , job_desk , job_employer , job_link , job_salary) VALUES($1, $2 , $3, $4 , $5, $6, $7, $8 )",
+              "INSERT INTO job_details(job_id, job_title , job_description ,job_description_html , job_desk , job_employer , job_link , job_salary,job_skills) VALUES($1, $2 , $3, $4 , $5, $6, $7, $8 , $9 )",
               [
                 job.id,
                 job.title,
@@ -57,6 +57,7 @@ export const run_bot = async () => {
                 job.employer,
                 job.link,
                 job.salary,
+                job.skills
               ]
             );
             // Insert into many to many relation table
