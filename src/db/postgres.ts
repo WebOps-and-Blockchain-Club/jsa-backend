@@ -8,8 +8,14 @@ const client = new Client({
   port: Number(String(process.env.PGPORT)),
 });
 
+client.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp" ;`, (err) => {
+  if (err) {
+    console.log(err.stack);
+  }
+});
+
 client.query(
-  "CREATE TABLE IF NOT EXISTS job_details( job_id VARCHAR(50) NOT NULL UNIQUE, job_title VARCHAR(100) NOT NULL, job_desk VARCHAR(50) NOT NULL, job_employer VARCHAR(100) NOT NULL, job_salary VARCHAR(100) NOT NULL, job_link VARCHAR NOT NULL, job_description VARCHAR NOT NULL, job_description_html VARCHAR NOT NULL, PRIMARY KEY (job_id));",
+  "CREATE TABLE IF NOT EXISTS job_details( job_id VARCHAR(50) NOT NULL UNIQUE, job_title VARCHAR(100) NOT NULL, job_desk VARCHAR(50) NOT NULL, job_employer VARCHAR(100) NOT NULL, job_salary VARCHAR(100) NOT NULL, job_link VARCHAR NOT NULL, job_description VARCHAR NOT NULL, job_description_html VARCHAR NOT NULL,job_skills VARCHAR(100), PRIMARY KEY (job_id));",
   (err) => {
     if (err) {
       console.log(err.stack);
@@ -35,7 +41,25 @@ client.query(
   }
 );
 client.query(
-  "CREATE TABLE IF NOT EXISTS usertable( id UUID NOT NULL PRIMARY KEY, username VARCHAR(50) NOT NULL, email VARCHAR(50) NOT NULL, resumestring VARCHAR(50) , experience VARCHAR(50) ,UNIQUE(email) );",
+  "CREATE TABLE IF NOT EXISTS user_table( id UUID NOT NULL PRIMARY KEY, username VARCHAR(100) NOT NULL, email VARCHAR(100) NOT NULL, resumestring VARCHAR(100),resumetext VARCHAR , experience VARCHAR(50) ,skills VARCHAR(100), UNIQUE(email) );",
+  (err) => {
+    if (err) {
+      console.log(err.stack);
+    }
+  }
+);
+
+client.query(
+  "CREATE TABLE IF NOT EXISTS input_bot(input_uid UUID NOT NULL PRIMARY KEY,job_title VARCHAR(50) NOT NULL,job_location VARCHAR(50) NOT NULL);",
+  (err) => {
+    if (err) {
+      console.log(err.stack);
+    }
+  }
+);
+
+client.query(
+  "CREATE INDEX CONCURRENTLY IF NOT EXISTS input_bot_tl_idx ON input_bot(job_title , job_location);",
   (err) => {
     if (err) {
       console.log(err.stack);
