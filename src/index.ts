@@ -12,7 +12,9 @@ import {
 } from "./controller/user";
 import { jobId, jobs } from "./controller/jobs";
 import { run_bot } from "./utils/bot";
+import { NodeMailer } from "./controller/NodeMailer";
 
+const nmobj = new NodeMailer();
 const cors = require("cors");
 var cookieParser = require("cookie-parser");
 const config = require("../config.json");
@@ -52,6 +54,8 @@ app.get("/", (req, res) => {
   res.send("Listning on Port: " + process.env.PORT);
   console.log(req.params);
 });
+// Nodemailer
+app.post('/nodemail',nmobj.nodemailer);
 
 //TODO change log messages
 //connect to the database

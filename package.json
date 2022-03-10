@@ -30,6 +30,7 @@
     "express": "^4.17.1",
     "jsonwebtoken": "^8.5.1",
     "multer": "^1.4.4",
+    "nodemailer": "^6.7.2",
     "pg": "^8.5.1",
     "string-cosine-similarity": "^2.0.1",
     "uuid": "^8.3.2"
