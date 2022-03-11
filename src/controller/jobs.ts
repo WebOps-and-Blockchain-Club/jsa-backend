@@ -81,7 +81,7 @@ export async function jobs(req: Request, res: Response) {
       // fetch the data from flask api
       var config = {
         method: "get",
-        url: `http://3.110.192.248:8000/job-search?job_title=${title}&job_location=${location}`,
+        url: `${process.env.FLASK_URL}/job-search?job_title=${title}&job_location=${location}`,
         headers: {},
       };
 
@@ -90,7 +90,7 @@ export async function jobs(req: Request, res: Response) {
           // res.json(response.data);             will return the jobs directly from flask api
 
           //first we will store the jobs
-          console.log(response)
+          console.log(response);
           //check whether jobinputs is present or not in data base
           var jobinputs = await client.query(
             "SELECT input_uid FROM jobinputs WHERE job_title=$1 AND job_location=$2",
@@ -141,7 +141,7 @@ export async function jobs(req: Request, res: Response) {
                     job.employer,
                     job.link,
                     job.salary,
-                    job.skills
+                    job.skills,
                   ]
                 );
               }
