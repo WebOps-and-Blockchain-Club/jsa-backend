@@ -59,7 +59,7 @@ export async function signup(req: any, res: any) {
         .end();
     }
     const { rows: user } = await client.query(
-      "SELECT * FROM user_table WHERE email = $1",
+      "SELECT id,username,email,resumestring,skills FROM user_table WHERE email = $1",
       [email]
     );
 
@@ -67,7 +67,7 @@ export async function signup(req: any, res: any) {
       const token = jwt.sign({ user: user[0] }, process.env.JWT_SECRET!, {
         expiresIn: "2 days",
       });
-      res.cookie("jsaToken", token);
+      res.cookie("jsaToken", token, {httpOnly : true});
       return res.json({ message: "User logged in" }).end();
     }
 
@@ -76,14 +76,14 @@ export async function signup(req: any, res: any) {
       [uuidv4(), displayName, email]
     );
     const { rows: userM } = await client.query(
-      "SELECT * FROM user_table WHERE email = $1",
+      "SELECT id,username,email,resumestring,skills FROM user_table WHERE email = $1",
       [email]
     );
 
     const token = jwt.sign({ user: userM[0] }, process.env.JWT_SECRET!, {
       expiresIn: "2 days",
     });
-    res.cookie("jsaToken", token);
+    res.cookie("jsaToken", token,{httpOnly : true});
     return res.json({ message: "Added User" }).end();
   } catch (error) {
     res.json({ message: error.message }).end();
@@ -99,8 +99,22 @@ export async function signout(_: Request, res: Response) {
 
 export async function profile(req: Request, res: Response) {
   if (req.currentUser) {
-    return res.json(req.currentUser).end();
+    const {rows : userM} = await client.query("SELECT * FROM user_table WHERE email = $1",[req.currentUser.email])
+    return res.json(userM[0]).end();
   }
+}
+export async function addprofile(req: Request, res: Response) {
+  const { age, experience, gender } = req.body;
+
+  try {
+    await client.query(
+      "UPDATE user_table SET age = $1 , gender = $2 , experience = $3 WHERE email = $4",
+      [age, experience, gender, req.currentUser.email]
+    );
+  } catch (err) {
+    return res.json({ message: err.message }).end();
+  }
+  return res.status(200).json({ message: "Profile Updated" });
 }
 
 export async function recommendations(req: Request, res: Response) {
@@ -138,10 +152,16 @@ export async function resumeupload(req: Request, res: Response) {
       }
       await reader
         .getText(`./Resumes/${req.currentUser.resumestring}`)
-        .then(async function (data: any) {
+        .then(async function (data1: any) {
+          var data = JSON.stringify({
+            "text": data1
+          });
           var config = {
             method: "post",
-            url: `${process.env.FLASKAPI_URL}/resume`,
+            url: `${process.env.FLASKAPI_URL}/get-skills`,
+            headers: { 
+              'Content-Type': 'application/json'
+            },
             data,
           };
           // Send Resume to flask api
@@ -150,7 +170,7 @@ export async function resumeupload(req: Request, res: Response) {
               await client.query(
                 "UPDATE user_table SET skills = $1,resumestring = $2,resumetext = $3  WHERE id = $4",
                 [
-                  response.data,
+                  response.data.data.join(" "),
                   req.currentUser.resumestring,
                   data,
                   req.currentUser.id,

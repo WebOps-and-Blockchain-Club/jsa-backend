@@ -41,7 +41,7 @@ client.query(
   }
 );
 client.query(
-  "CREATE TABLE IF NOT EXISTS user_table( id UUID NOT NULL PRIMARY KEY, username VARCHAR(100) NOT NULL, email VARCHAR(100) NOT NULL, resumestring VARCHAR(100),resumetext VARCHAR , experience VARCHAR(50) ,skills VARCHAR(100), UNIQUE(email) );",
+  "CREATE TABLE IF NOT EXISTS user_table( id UUID NOT NULL PRIMARY KEY, username VARCHAR(100) NOT NULL, email VARCHAR(100) NOT NULL, resumestring VARCHAR(100),resumetext VARCHAR , experience VARCHAR ,skills VARCHAR ,age VARCHAR, gender VARCHAR,  UNIQUE(email) );",
   (err) => {
     if (err) {
       console.log(err.stack);
