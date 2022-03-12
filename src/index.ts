@@ -23,12 +23,12 @@ const app = express();
 var bodyParser = require("body-parser");
 
 // middleware
-app.use(cors(
-  {
-    origin : "http://localhost:3000",
-    credentials : true
-  }
-));
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -67,7 +67,7 @@ app.get("/", (req, res) => {
   console.log(req.params);
 });
 // Nodemailer
-app.post('/nodemail',nmobj.nodemailer);
+app.post("/nodemail", nmobj.nodemailer);
 
 //TODO change log messages
 //connect to the database

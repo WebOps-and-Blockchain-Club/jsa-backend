@@ -51,21 +51,20 @@ export async function jobs(req: Request, res: Response) {
       });
     } else if (title && location == undefined) {
       jobs = await client.query(
-        "SELECT * FROM job_details INNER JOIN input_details ON job_details.job_id=input_details.details_id INNER JOIN jobinputs ON input_details.input_id=jobinputs.input_uid WHERE jobinputs.job_title=$1",
+        "SELECT * FROM job_details INNER JOIN input_details ON job_details.job_id=input_details.details_id INNER JOIN jobinputs ON input_details.input_id=jobinputs.input_uid WHERE jobinputs.title=$1",
         [String(title).toLowerCase()]
       );
     } else if (title == undefined && location) {
       jobs = await client.query(
-        "SELECT * FROM job_details INNER JOIN input_details ON job_details.job_id=input_details.details_id INNER JOIN jobinputs ON input_details.input_id=jobinputs.input_uid WHERE jobinputs.job_location=$1",
+        "SELECT * FROM job_details INNER JOIN input_details ON job_details.job_id=input_details.details_id INNER JOIN jobinputs ON input_details.input_id=jobinputs.input_uid WHERE jobinputs.location=$1",
         [String(location).toLowerCase()]
       );
     } else {
       jobs = await client.query(
-        "SELECT * FROM job_details INNER JOIN input_details ON job_details.job_id=input_details.details_id INNER JOIN jobinputs ON input_details.input_id=jobinputs.input_uid WHERE jobinputs.job_title=$1 AND jobinputs.job_location=$2",
+        "SELECT * FROM job_details INNER JOIN input_details ON job_details.job_id=input_details.details_id INNER JOIN jobinputs ON input_details.input_id=jobinputs.input_uid WHERE jobinputs.title=$1 AND jobinputs.location=$2",
         [String(title).toLowerCase(), String(location).toLowerCase()]
       );
     }
-
     if (jobs.rows.length !== 0) {
       verifyToken2(req, res)
         ? res.json(
@@ -93,7 +92,7 @@ export async function jobs(req: Request, res: Response) {
 
           //check whether jobinputs is present or not in data base
           var jobinputs = await client.query(
-            "SELECT input_uid FROM jobinputs WHERE job_title=$1 AND job_location=$2",
+            "SELECT input_uid FROM jobinputs WHERE title=$1 AND location=$2",
             [title, location]
           );
 
@@ -101,22 +100,22 @@ export async function jobs(req: Request, res: Response) {
           try {
             if (jobinputs.rows.length == 0) {
               await client.query(
-                "INSERT INTO jobinputs(input_uid , job_title, job_location) VALUES($1, $2 , $3)",
+                "INSERT INTO jobinputs(input_uid , title, location) VALUES($1, $2 , $3)",
                 [uuidv4(), title, location]
               );
               if (title && location) {
                 jobinputs = await client.query(
-                  "SELECT input_uid FROM jobinputs WHERE job_title=$1 AND job_location=$2",
+                  "SELECT input_uid FROM jobinputs WHERE title=$1 AND location=$2",
                   [title, location]
                 );
               } else if (title && location == undefined) {
                 jobinputs = await client.query(
-                  "SELECT input_uid FROM jobinputs WHERE job_title=$1",
+                  "SELECT input_uid FROM jobinputs WHERE title=$1",
                   [title]
                 );
               } else {
                 jobinputs = await client.query(
-                  "SELECT input_uid FROM jobinputs WHERE job_location=$1",
+                  "SELECT input_uid FROM jobinputs WHERE location=$1",
                   [location]
                 );
               }
@@ -137,10 +136,11 @@ export async function jobs(req: Request, res: Response) {
               if (jobs.rows.length == 0) {
                 try {
                   await client.query(
-                    "INSERT INTO job_details(job_id, job_title , job_description ,job_description_html , job_desk , job_employer , job_link , job_salary,job_skills) VALUES($1, $2 , $3, $4 , $5, $6, $7, $8, $9 )",
+                    "INSERT INTO job_details(job_id, job_title , job_location, job_description ,job_description_html , job_desk , job_employer , job_link , job_salary,job_skills) VALUES($1, $2 , $3, $4 , $5, $6, $7, $8, $9 , $10 )",
                     [
                       job.id,
                       job.title,
+                      job.location,
                       job.description,
                       job.description_html,
                       job.desk,
@@ -173,7 +173,7 @@ export async function jobs(req: Request, res: Response) {
           //get the jobs from db
           if (title && location == undefined) {
             jobs = await client.query(
-              "SELECT * FROM job_details INNER JOIN input_details ON job_details.job_id=input_details.details_id INNER JOIN jobinputs ON input_details.input_id=jobinputs.input_uid WHERE jobinputs.job_title=$1",
+              "SELECT * FROM job_details INNER JOIN input_details ON job_details.job_id=input_details.details_id INNER JOIN jobinputs ON input_details.input_id=jobinputs.input_uid WHERE jobinputs.title=$1",
               [String(title).toLowerCase()]
             );
             verifyToken2(req, res)
@@ -186,7 +186,7 @@ export async function jobs(req: Request, res: Response) {
               : res.json(jobs.rows);
           } else if (title == undefined && location) {
             jobs = await client.query(
-              "SELECT * FROM job_details INNER JOIN input_details ON job_details.job_id=input_details.details_id INNER JOIN jobinputs ON input_details.input_id=jobinputs.input_uid WHERE jobinputs.job_location=$1",
+              "SELECT * FROM job_details INNER JOIN input_details ON job_details.job_id=input_details.details_id INNER JOIN jobinputs ON input_details.input_id=jobinputs.input_uid WHERE jobinputs.location=$1",
               [String(location).toLowerCase()]
             );
             verifyToken2(req, res)
@@ -199,7 +199,7 @@ export async function jobs(req: Request, res: Response) {
               : res.json(jobs.rows);
           } else {
             jobs = await client.query(
-              "SELECT * FROM job_details INNER JOIN input_details ON job_details.job_id=input_details.details_id INNER JOIN jobinputs ON input_details.input_id=jobinputs.input_uid WHERE jobinputs.job_title=$1 AND jobinputs.job_location=$2",
+              "SELECT * FROM job_details INNER JOIN input_details ON job_details.job_id=input_details.details_id INNER JOIN jobinputs ON input_details.input_id=jobinputs.input_uid WHERE jobinputs.title=$1 AND jobinputs.location=$2",
               [String(title).toLowerCase(), String(location).toLowerCase()]
             );
             verifyToken2(req, res)
@@ -216,6 +216,8 @@ export async function jobs(req: Request, res: Response) {
           console.log(error);
         });
     }
+
+    console.log("End of job search");
   } catch (error) {
     console.log(error.message);
     res.end();
