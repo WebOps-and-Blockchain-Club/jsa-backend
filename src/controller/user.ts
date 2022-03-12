@@ -170,7 +170,7 @@ export async function resumeupload(req: Request, res: Response) {
               await client.query(
                 "UPDATE user_table SET skills = $1,resumestring = $2,resumetext = $3  WHERE id = $4",
                 [
-                  response.data,
+                  response.data.data.join(" "),
                   req.currentUser.resumestring,
                   data,
                   req.currentUser.id,
