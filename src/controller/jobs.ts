@@ -178,7 +178,7 @@ export async function jobs(req: Request, res: Response) {
             );
             verifyToken2(req, res)
               ? res.json(
-                  Recommendations({
+                  await Recommendations({
                     userSkills: req.currentUser.skills!,
                     jobs: jobs.rows,
                   })
@@ -191,7 +191,7 @@ export async function jobs(req: Request, res: Response) {
             );
             verifyToken2(req, res)
               ? res.json(
-                  Recommendations({
+                  await Recommendations({
                     userSkills: req.currentUser.skills!,
                     jobs: jobs.rows,
                   })
@@ -204,7 +204,7 @@ export async function jobs(req: Request, res: Response) {
             );
             verifyToken2(req, res)
               ? res.json(
-                  Recommendations({
+                  await Recommendations({
                     userSkills: req.currentUser.skills!,
                     jobs: jobs.rows,
                   })
