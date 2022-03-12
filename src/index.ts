@@ -3,6 +3,7 @@ import * as dotenv from "dotenv";
 dotenv.config();
 import client from "./db/postgres";
 import {
+  addprofile,
   profile,
   recommendations,
   resumeupload,
@@ -19,11 +20,19 @@ const cors = require("cors");
 var cookieParser = require("cookie-parser");
 const config = require("../config.json");
 const app = express();
+var bodyParser = require("body-parser");
 
 // middleware
-app.use(cors());
+app.use(cors(
+  {
+    origin : "http://localhost:3000",
+    credentials : true
+  }
+));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 //Bot
@@ -43,6 +52,9 @@ app.post("/signout", verifyToken, signout);
 
 // User Profile
 app.get("/profile", verifyToken, profile);
+
+// Add profile
+app.post("/addprofile", verifyToken, addprofile);
 
 // Job Recommendations
 app.get("/recommendations", verifyToken, recommendations);
