@@ -15,7 +15,7 @@ client.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp" ;`, (err) => {
 });
 
 client.query(
-  "CREATE TABLE IF NOT EXISTS job_details( job_id VARCHAR(50) NOT NULL UNIQUE, job_title VARCHAR(100) NOT NULL, job_desk VARCHAR(50) NOT NULL, job_employer VARCHAR(100) NOT NULL, job_salary VARCHAR(100) NOT NULL, job_link VARCHAR NOT NULL, job_description VARCHAR NOT NULL, job_description_html VARCHAR NOT NULL,job_skills VARCHAR(100), PRIMARY KEY (job_id));",
+  "CREATE TABLE IF NOT EXISTS job_details( job_id VARCHAR(50) NOT NULL UNIQUE, job_title VARCHAR(100) NOT NULL, job_desk VARCHAR(50) NOT NULL, job_employer VARCHAR(100) NOT NULL, job_salary VARCHAR(100) NOT NULL, job_link VARCHAR NOT NULL, job_description VARCHAR NOT NULL, job_description_html VARCHAR NOT NULL,job_skills VARCHAR, PRIMARY KEY (job_id));",
   (err) => {
     if (err) {
       console.log(err.stack);

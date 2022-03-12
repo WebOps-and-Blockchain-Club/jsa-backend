@@ -90,7 +90,7 @@ export async function jobs(req: Request, res: Response) {
           // res.json(response.data);             will return the jobs directly from flask api
 
           //first we will store the jobs
-          console.log(response);
+
           //check whether jobinputs is present or not in data base
           var jobinputs = await client.query(
             "SELECT input_uid FROM jobinputs WHERE job_title=$1 AND job_location=$2",
@@ -98,59 +98,75 @@ export async function jobs(req: Request, res: Response) {
           );
 
           //Add the jobinputs data to db if it is not present
-          if (jobinputs.rows.length == 0) {
-            await client.query(
-              "INSERT INTO jobinputs(input_uid , job_title, job_location) VALUES($1, $2 , $3)",
-              [uuidv4(), title, location]
-            );
-            if (title && location) {
-              jobinputs = await client.query(
-                "SELECT input_uid FROM jobinputs WHERE job_title=$1 AND job_location=$2",
-                [title, location]
+          try {
+            if (jobinputs.rows.length == 0) {
+              await client.query(
+                "INSERT INTO jobinputs(input_uid , job_title, job_location) VALUES($1, $2 , $3)",
+                [uuidv4(), title, location]
               );
-            } else if (title && location == undefined) {
-              jobinputs = await client.query(
-                "SELECT input_uid FROM jobinputs WHERE job_title=$1",
-                [title]
-              );
-            } else {
-              jobinputs = await client.query(
-                "SELECT input_uid FROM jobinputs WHERE job_location=$1",
-                [location]
-              );
+              if (title && location) {
+                jobinputs = await client.query(
+                  "SELECT input_uid FROM jobinputs WHERE job_title=$1 AND job_location=$2",
+                  [title, location]
+                );
+              } else if (title && location == undefined) {
+                jobinputs = await client.query(
+                  "SELECT input_uid FROM jobinputs WHERE job_title=$1",
+                  [title]
+                );
+              } else {
+                jobinputs = await client.query(
+                  "SELECT input_uid FROM jobinputs WHERE job_location=$1",
+                  [location]
+                );
+              }
             }
+          } catch (error) {
+            console.log(error.message);
+            res.json({ message: "Error in storing the jobinputs" });
           }
 
           //insert jobs to the job details table
           const data = response.data;
           await Promise.all(
-            data.map(async (job: any) => {
+            data.data.map(async (job: any) => {
               jobs = await client.query(
                 "SELECT * FROM job_details WHERE job_id=$1",
                 [job.id]
               );
               if (jobs.rows.length == 0) {
-                await client.query(
-                  "INSERT INTO job_details(job_id, job_title , job_description ,job_description_html , job_desk , job_employer , job_link , job_salary,job_skills) VALUES($1, $2 , $3, $4 , $5, $6, $7, $8, $9 )",
-                  [
-                    job.id,
-                    job.title,
-                    job.description,
-                    job.description_html,
-                    job.desk,
-                    job.employer,
-                    job.link,
-                    job.salary,
-                    job.skills,
-                  ]
-                );
+                try {
+                  await client.query(
+                    "INSERT INTO job_details(job_id, job_title , job_description ,job_description_html , job_desk , job_employer , job_link , job_salary,job_skills) VALUES($1, $2 , $3, $4 , $5, $6, $7, $8, $9 )",
+                    [
+                      job.id,
+                      job.title,
+                      job.description,
+                      job.description_html,
+                      job.desk,
+                      job.employer,
+                      job.link,
+                      job.salary,
+                      job.skills,
+                    ]
+                  );
+                } catch (error) {
+                  console.log(error.message);
+                }
               }
 
               //Add the relation between the job_details and jobinputs table in input details table
-              await client.query(
-                "INSERT INTO input_details(input_id, details_id) VALUES($1, $2)",
-                [jobinputs.rows[0].input_uid, job.id]
-              );
+              try {
+                await client.query(
+                  "INSERT INTO input_details(details_id, input_id) VALUES($1, $2)",
+                  [job.id, jobinputs.rows[0].input_uid]
+                );
+              } catch (err) {
+                console.log(err.message);
+                // res.json({
+                //   message: "Error in inserting data to input_details table",
+                // });
+              }
             })
           );
 
