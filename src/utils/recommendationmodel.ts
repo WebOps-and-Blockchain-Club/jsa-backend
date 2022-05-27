@@ -52,5 +52,10 @@ export const Recommendations = async ({ userSkills, jobs }: props) => {
     }
     return 0;
   });
+  recommendations.map(rec =>{
+    if(rec.similarity ==  null  ){
+      rec.similarity = 0;
+    }
+  })
   return recommendations;
 };

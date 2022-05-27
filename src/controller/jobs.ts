@@ -80,7 +80,7 @@ export async function jobs(req: Request, res: Response) {
       // fetch the data from flask api
       var config = {
         method: "get",
-        url: `${process.env.FLASK_URL}/job-search?job_title=${title}&job_location=${location}`,
+        url: `${process.env.FLASKAPI_URL}/job-search?job_title=${title}&job_location=${location}`,
         headers: {},
       };
 

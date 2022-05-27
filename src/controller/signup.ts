@@ -5,7 +5,7 @@ export async function signup(req: any, res: any) {
   try {
     const { displayName, email } = req.body;
     await client.query(
-      "INSERT INTO usertable(id,username,email) VALUES($1, $2 , $3)",
+      "INSERT INTO user_table(id,username,email) VALUES($1, $2 , $3)",
       [uuidv4(), displayName, email]
     );
     res.json({ message: "Added User" });

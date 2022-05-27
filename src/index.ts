@@ -25,7 +25,7 @@ var bodyParser = require("body-parser");
 // middleware
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: "http://jobaggregator.in",
     credentials: true,
   })
 );
